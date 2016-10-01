@@ -189,7 +189,7 @@ resources.  You have slowly poisioned tyourself to a demise.  MISSION FAILED....
             b.	Type 'Observe' to get a detailed prompt on information on the planet you are currently on.
             c.	Type 'Extract' to obtain any resource you find on any of the planets.  Some items you can pick up, but you may not need it.  For                    example 'Extract Oxygen' is a valid command depending on what planet you are on.
             d.	Type 'Resources' to see what you currently have so that you can keep track of the resources you extract.  
-            e.	Type 'Fly' to go to a planet.  Your ship only has enough fuel to planet hop so you can’t directly go to any planet.  The order you c                an go is based on the order of the Solar System.  You can go to any star or planet in the Solar System, but there are some places th                at you do not have to go to.  If you were on Earth, 'Fly Mars' would be a valid command.
+            e.	Type 'Fly' to go to a planet.  Your ship only has enough fuel to planet hop so you canÂ’t directly go to any planet.  The order you c                an go is based on the order of the Solar System.  You can go to any star or planet in the Solar System, but there are some places th                at you do not have to go to.  If you were on Earth, 'Fly Mars' would be a valid command.
             f.	Type 'commands' if you forget to read this user guide so that you can get the same information shown here.
             g.  Type 'quit' at any time to restart the entire game.")
    (terpri)
