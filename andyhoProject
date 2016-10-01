@@ -1,0 +1,213 @@
+;;;; -*- Mode: LISP; Syntax: Common-lisp; Package: USER; Base: 10 -*-
+;;;; Name: Andy Omori                          Date: 4/15/2016
+;;;; Course: ICS313        Assignment: Project
+;;;; File: andyhoProject
+;;;; Certain functions borrowed from Wizards World program.
+
+(defparameter +ID+ "Andy Omori") ;Author ID parameter
+
+;;These are the planets place nodes where typing "observe" will display this info
+(defparameter *nodes* '(
+   (Pluto   ("This is not a planet anymore."))
+   (Neptune ("This planet shines blue and is the fourth largest planet.  It is a gas giant and consists mainly of Hydrogen and Helium."))
+   (Uranus  ("This planet is the third largest and is a gas giant consisting of Hydrogen Helium."))
+   (Saturn  ("This planet is known for its large ring system. It composes of Metallic Hydrogen."))
+   (Jupiter ("This is the largest Planet in the Solar System, and a gas giant."))
+   (Mars    ("Known as the red planet, we may be looking for a future here."))
+   (Earth   ("You are on Earth. Our base where the research & development and is full of water."))
+   (Venus   ("Violent storms harm the planet. Along with containing a heavy greenhouse effect."))
+   (Mercury ("The planet closest to the Sun, it is the smallest planet in the Solar System, and a terrestrial planet full of minerals."))
+   (Sun     ("You landed on the Sun, what was the point. It would be good to leave."))))
+
+;;Grabs the nodes to display the information about the planet
+(defun describe-planet (location nodes)
+   (cadr (assoc location nodes)))
+
+;;Paths to each planet, type fly planet_name
+(defparameter *edges* '((Pluto   (Neptune Neptune Route))          
+                        (Neptune (Pluto Pluto Route)
+                                 (Uranus Uranus Route))
+                        (Uranus  (Neptune Neptune Route)
+                                 (Saturn Saturn Route))
+                        (Saturn  (Uranus Uranus Route)
+                                 (Jupiter Jupiter Route))
+                        (Jupiter (Saturn Saturn Route)
+                                 (Mars Mars Route))
+                        (Mars    (Earth Earth Route)
+                                 (Jupiter Jupiter Route))
+                        (Earth   (Venus Venus Route)
+                                 (Mars Mars Route))
+                        (Venus   (Earth Earth Route)
+                                 (Mercury Mercury Route))
+                        (Mercury (Venus Venus Route)
+                                 (Sun Sun Route))
+                        (Sun     (Mercury Mercury Route))))
+
+;;This prompts a message of caddr edge (route) and (planet_name)
+(defun describe-path (edge)
+  `(there is a ,(caddr edge) going to,(cadr edge) now.))
+
+(defun describe-paths (location edges)
+  (apply #'append (mapcar #'describe-path (cdr (assoc location edges)))))
+
+(defparameter *objects* '(Plutonium Neptunium Uranium Helium Hydrogen Silicon Oxygen Nitrogen Titanium Starship)) 
+
+;;Some objects can be disastorous
+(defparameter *object-locations* '((Plutonium Pluto)     ;This will cause you to lose    
+                                   (Neptunium Neptune)
+                                   (Uranium Uranus)      ;This will cause you to lose
+                                   (Helium Saturn) 
+                                   (Hydrogen Jupiter) 
+                                   (Silicon Mars) 
+                                   (Oxygen Earth)
+                                   (Starship Earth)
+                                   (Nitrogen Venus)      ;This is not needed to win
+                                   (Titanium Mercury)))  
+
+(defun objects-at (loc objs obj-loc)
+   (labels ((is-at (obj)
+              (eq (cadr (assoc obj obj-loc)) loc)))
+       (remove-if-not #'is-at objs)))
+
+(defun describe-objects (loc objs obj-loc)
+   (labels ((describe-obj (obj)
+                `(you observe ,obj throughout the planet.)))
+      (apply #'append (mapcar #'describe-obj (objects-at loc objs obj-loc)))))
+
+(defparameter *location* 'Earth)
+
+(defun observe ()
+  (append (describe-planet *location* *nodes*)
+          (describe-paths *location* *edges*)
+          (describe-objects *location* *objects* *object-locations*)))
+
+
+(defun fly (direction)
+  (labels ((correct-way (edge)
+             (eq (cadr edge) direction)))
+    (let ((next (find-if #'correct-way (cdr (assoc *location* *edges*)))))
+      (if next 
+          (progn (setf *location* (car next)) 
+                 (observe))
+          '(you cannot fly that way.)))))
+
+(defun extract (object)
+  (cond ((member object (objects-at *location* *objects* *object-locations*))
+         (push (list object 'body) *object-locations*)
+         `(You have successfully extracted ,object))
+	  (t '(you do not need that for the journey.))))
+
+(defun resources ()
+  (cons 'items- (objects-at 'body *objects* *object-locations*)))
+
+(defun have (object) 
+    (member object (cdr (resources))))
+
+
+(defun game-repl ()
+    (let ((cmd (game-read)))
+        (unless (eq (car cmd) 'quit)
+            (game-print (game-eval cmd))
+            (game-repl))))
+
+(defun game-read ()
+    (let ((cmd (read-from-string (concatenate 'string "(" (read-line) ")"))))
+         (flet ((quote-it (x)
+                    (list 'quote x)))
+             (cons (car cmd) (mapcar #'quote-it (cdr cmd))))))
+
+(defparameter *allowed-commands* '(observe fly extract resources mission commands))
+
+(defun game-eval (sexp)
+    (if (member (car sexp) *allowed-commands*)
+        (eval sexp)
+        '(I do not know that command.)))
+
+(defun tweak-text (lst caps lit)
+  (when lst
+    (let ((item (car lst))
+          (rest (cdr lst)))
+      (cond ((eql item #\space) (cons item (tweak-text rest caps lit)))
+            ((member item '(#\! #\? #\.)) (cons item (tweak-text rest t lit)))
+            ((eql item #\") (tweak-text rest caps (not lit)))
+            (lit (cons item (tweak-text rest nil lit)))
+            (caps (cons (char-upcase item) (tweak-text rest nil lit)))
+            (t (cons (char-downcase item) (tweak-text rest nil nil)))))))
+
+(defun game-print (lst)
+    (princ (coerce (tweak-text (coerce (string-trim "() " (prin1-to-string lst)) 'list) t nil) 'string))
+    (fresh-line))
+
+(defmacro game-action (command subj obj place &body body)
+  `(progn (defun ,command (subject object)
+            (if (and (eq *location* ',place)
+                     (eq subject ',subj)
+                     (eq object ',obj)
+                     (have ',subj))
+                ,@body
+            '(i cant ,command that.)))
+          (pushnew ',command *allowed-commands*)))
+
+;;Makes your engine upgrade using mix action
+(defparameter *engine-upgrade* nil)
+
+(game-action mix Helium Neptunium Earth
+     (if (and (have 'Neptunium) (not *engine-upgrade*))
+                 (progn (setf *engine-upgrade* 't)
+                        '(The engines have been successfully upgraded.))
+               '(you do not have all the neccesary resources.)))
+
+;;Makes your structure upgrade using weld action
+(defparameter *structure-upgrade* nil)
+
+(game-action weld Sillicon Titanium Earth
+                               (if (and (have 'Titanium) (not *structure-upgrade*))
+                 (progn (setf *structure-upgrade* 't)
+                        '(The structure of the ship has been successfully upgraded.))
+               '(you do not have all the neccesary resources.)))
+
+;;Makes your life support upgrade using make action
+(defparameter *life-support* nil)
+
+(game-action make Hydrogen Oxygen Earth
+                               (if (and (have 'Oxygen) (not *life-support*))
+                 (progn (setf *life-support* 't)
+                        '(The life support system has been successfully upgraded.))
+               '(you do not have all the neccesary resources.)))
+
+;;Once all upgrades are made, launch action will launch to intended place
+(game-action launch Starship Alpha-Centauri Earth
+    (cond ((and (not *engine-upgrade*) (not *structure-upgrade*) (not *life-support* ) (not 'Starship)) '("There is no upgrade."))
+           ((and (have 'Uranium)(have 'Plutonium)) '("On your journey, you realized you grabbed Plutonium, and Uranium, two highy unstable
+resources.  You have slowly poisioned tyourself to a demise.  MISSION FAILED.......type quit to restart."))
+          (t '("You have reached the next pinnacle in human achievement, congratulations you have won for humanity. MISSION COMPLETE!.......type quit to leave."))))
+
+;;Help
+(defun commands ()
+   (princ  "1.  Basic Commands ('Quotes' are just for reference, not part of the command)
+            a.	Type 'Mission' (every command is case insensitive) to learn the background of the whole game and what you need to do. The game takes                place only in the solar system, but you need to get to another star system (Alpha Centauri).
+            b.	Type 'Observe' to get a detailed prompt on information on the planet you are currently on.
+            c.	Type 'Extract' to obtain any resource you find on any of the planets.  Some items you can pick up, but you may not need it.  For                    example 'Extract Oxygen' is a valid command depending on what planet you are on.
+            d.	Type 'Resources' to see what you currently have so that you can keep track of the resources you extract.  
+            e.	Type 'Fly' to go to a planet.  Your ship only has enough fuel to planet hop so you can’t directly go to any planet.  The order you c                an go is based on the order of the Solar System.  You can go to any star or planet in the Solar System, but there are some places th                at you do not have to go to.  If you were on Earth, 'Fly Mars' would be a valid command.
+            f.	Type 'commands' if you forget to read this user guide so that you can get the same information shown here.
+            g.  Type 'quit' at any time to restart the entire game.")
+   (terpri)
+   (princ  "2.	Getting to Alpha Centauri
+            a.	When using these actions, you want to perform the action with resources with the lower letter first starting from a-z.  For example,                'mix alpha beta', not 'mix beta alpha'.
+            b.	To get to Alpha Centauri, you need to gather resources.  Once you do that, you need to get back to Earth and pick up the Starship.                  From there, use the resources to weld a structural upgrade, mix a life-support solution, and make an engine upgrade.  You only can                  only perform the upgrades on Earth.
+            c.	You need to weld two resources to make a structural upgrade by typing 'weld' along with the name of the two resources.  You need to                 mix two resources to make a life support upgrade by typing 'mix' along with the name of the two resources.  You need to combine two                 resources to make a structural upgrade by typing 'make' along with the name of the two resources.  
+            d.	Once you get all your upgrades, type 'launch starship Alpha-Centauri' to leave the Solar System.")
+   (terpri)
+   (princ  "3.	Hints/How to Win
+            a.	This game is straightforward and like wizards world.  Just fly to planets, get you resources, upgrade your ship and use the starship                to leave the system.
+            b.	Resources can only be mixed/welded/make once.  There are two resources that can destroy your ship
+            c.	There are planets/star that you do not need to go to/need its resource.")
+   (terpri))
+
+;;Mission prompt
+(defun mission ()
+  (princ " Welcome,")
+  (terpri)
+  (princ " In this journey we are trying to reach the next star system which is Alpha-Centauri. Currently you are on Earth. In order to achieve                leaving the solar system, you need to obtain a resource from each of our eight planets in our solar system.  By obtaining these resources           you can combine them to perform upgrades on your ship regarding life-support, engine-upgrades, and structural-upgrades in order to reach            the next star system.Keep in mind that every resource is not always the right resource and may end up causing your demise. Good Luck!")
+  (terpri))
