@@ -1,7 +1,5 @@
 ;;;; -*- Mode: LISP; Syntax: Common-lisp; Package: USER; Base: 10 -*-
 ;;;; Name: Andy Omori                          Date: 4/15/2016
-;;;; Course: ICS313        Assignment: Project
-;;;; File: andyhoProject
 ;;;; Certain functions borrowed from Wizards World program.
 
 (defparameter +ID+ "Andy Omori") ;Author ID parameter
