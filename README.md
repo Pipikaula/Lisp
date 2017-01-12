@@ -2,4 +2,4 @@
 
 A lisp project made for fun
 
-Step 1 in the user guide should not be followed
+Edit: Step 1 in the user guide should not be followed
